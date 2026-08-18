@@ -9,3 +9,5 @@ tech demo [here](https://sighthough.github.io/Comprector-extreme-compression/) f
 
 make sure to put block size to 64 and pointer size to 16 along with top frequency blocks  for the best compression!
 and experiment with the settings with different files 
+
+[promo vid](https://youtu.be/Mo2Dy_vT1Zs)
