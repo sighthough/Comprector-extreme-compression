@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flag-Based Dictionary Compression Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --primary: #38bdf8;
+            --primary-hover: #0284c7;
+            --accent-hit: #22c55e;
+            --accent-hit-bg: rgba(34, 197, 94, 0.15);
+            --accent-miss: #ef4444;
+            --accent-miss-bg: rgba(239, 68, 68, 0.15);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --warning: #f59e0b;
+            --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 28px;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.85rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 span.badge {
+            font-size: 0.75rem;
+            background-color: #0284c7;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 6px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Controls Panel */
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input[type="file"], button {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: #0f172a;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        select:focus, button:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        .dropzone {
+            border: 2px dashed var(--card-border);
+            border-radius: 8px;
+            padding: 24px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: rgba(15, 23, 42, 0.5);
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--primary);
+            background-color: rgba(56, 189, 248, 0.05);
+        }
+
+        .dropzone p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-preset {
+            padding: 8px;
+            font-size: 0.78rem;
+            background-color: #334155;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .btn-preset:hover {
+            background-color: #475569;
+            color: #fff;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin: 6px 0 2px 0;
+            font-family: var(--font-mono);
+        }
+
+        .stat-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 6px;
+        }
+
+        .pill-success {
+            background-color: var(--accent-hit-bg);
+            color: var(--accent-hit);
+        }
+
+        .pill-danger {
+            background-color: var(--accent-miss-bg);
+            color: var(--accent-miss);
+        }
+
+        /* Bit Map Visualizer */
+        .block-map-container {
+            max-height: 220px;
+            overflow-y: auto;
+            background-color: #0f172a;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        .block-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+        }
+
+        .block-cell {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .block-cell:hover {
+            transform: scale(1.4);
+            z-index: 10;
+        }
+
+        .block-cell.hit {
+            background-color: var(--accent-hit);
+            box-shadow: 0 0 4px rgba(34, 197, 94, 0.4);
+        }
+
+        .block-cell.miss {
+            background-color: #334155;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        th {
+            background-color: rgba(15, 23, 42, 0.6);
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background-color: rgba(51, 65, 85, 0.3);
+        }
+
+        td.mono {
+            font-family: var(--font-mono);
+        }
+
+        /* Mathematical Breakdown */
+        .math-box {
+            background-color: #0f172a;
+            border-left: 4px solid var(--primary);
+            padding: 14px 16px;
+            border-radius: 0 8px 8px 0;
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            line-height: 1.7;
+            margin-top: 10px;
+        }
+
+        .math-box .highlight {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .file-info {
+            font-size: 0.8rem;
+            color: var(--primary);
+            margin-top: 8px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Flag-Based Dictionary Compression Simulator <span class="badge">v2.0 (Large Tables)</span></h1>
+        <div class="subtitle">
+            Simulate 1-bit flag + <i>P</i>-bit pointer compression on raw files across variable block sizes (<i>N</i> up to 64 bits) and expanded dictionary sizes (<i>P</i> up to 16 bits / 65,536 entries).
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <div class="card">
+                <div class="card-title">Input Source</div>
+                
+                <div class="dropzone" id="dropzone">
+                    <strong>Drag & Drop File Here</strong>
+                    <p>or click to select file</p>
+                    <input type="file" id="fileInput" style="display: none;">
+                </div>
+                <div class="file-info" id="fileInfo">Active File: <i>Sample Memory Dump</i></div>
+
+                <div style="margin-top: 16px;">
+                    <label>Test Presets</label>
+                    <div class="preset-buttons">
+                        <button class="btn-preset" onclick="loadPreset('memory')">Memory Dump</button>
+                        <button class="btn-preset" onclick="loadPreset('text')">English Text</button>
+                        <button class="btn-preset" onclick="loadPreset('sparse')">Sparse Zeroes</button>
+                        <button class="btn-preset" onclick="loadPreset('random')">Random Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Compression Parameters</div>
+
+                <div class="control-group">
+                    <label for="blockSizeSelect">Block Size (N bits)</label>
+                    <select id="blockSizeSelect" onchange="runCompression()">
+                        <option value="4">4 bits (1/2 Byte)</option>
+                        <option value="6">6 bits</option>
+                        <option value="8">8 bits (1 Byte)</option>
+                        <option value="16">16 bits (2 Bytes)</option>
+                        <option value="32" selected>32 bits (4 Bytes)</option>
+                        <option value="64">64 bits (8 Bytes)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="pointerSizeSelect">Pointer Size (P bits / Table Size)</label>
+                    <select id="pointerSizeSelect" onchange="runCompression()">
+                        <option value="2">2 bits (4 Table Entries)</option>
+                        <option value="3">3 bits (8 Table Entries)</option>
+                        <option value="4">4 bits (16 Table Entries)</option>
+                        <option value="5">5 bits (32 Table Entries)</option>
+                        <option value="8">8 bits (256 Table Entries)</option>
+                        <option value="10">10 bits (1,024 Table Entries)</option>
+                        <option value="12">12 bits (4,096 Table Entries)</option>
+                        <option value="14">14 bits (16,384 Table Entries)</option>
+                        <option value="16" selected>16 bits (65,536 Table Entries)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="dictStrategySelect">Dictionary Construction</label>
+                    <select id="dictStrategySelect" onchange="runCompression()">
+                        <option value="frequency" selected>Top-Frequency Blocks (Optimal Static)</option>
+                        <option value="standard">Standard Patterns (0x0, 0xFF, low ints)</option>
+                        <option value="first">First Unique Blocks Encountered</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard View -->
+        <div class="main-content">
+            <!-- Key Metrics Cards -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">Original Size</div>
+                    <div class="stat-value" id="statRawSize">0 B</div>
+                    <div class="stat-sub" id="statRawBits">0 bits</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Compressed Size</div>
+                    <div class="stat-value" id="statCompSize">0 B</div>
+                    <div class="stat-sub" id="statCompBits">0 bits</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Compression Net Gain</div>
+                    <div class="stat-value" id="statRatio">0.0%</div>
+                    <div class="stat-sub" id="statRatioSub">
+                        <span id="ratioPill" class="pill pill-success">+0%</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Hit Rate vs Break-Even</div>
+                    <div class="stat-value" id="statHitRate">0.0%</div>
+                    <div class="stat-sub" id="statBreakEven">Req: > 0.0%</div>
+                </div>
+            </div>
+
+            <!-- Block Hit Map Visualizer -->
+            <div class="card">
+                <div class="card-title">
+                    <span>Bitstream Block Map <span style="font-weight: normal; font-size: 0.8rem; color: var(--text-muted);">(First 1,000 Blocks)</span></span>
+                    <div style="font-size: 0.8rem; font-weight: normal; display: flex; gap: 12px;">
+                        <span style="color: var(--accent-hit);">■ Hit (1+P bits)</span>
+                        <span style="color: var(--text-muted);">■ Miss (1+N bits)</span>
+                    </div>
+                </div>
+                <div class="block-map-container">
+                    <div class="block-grid" id="blockGrid"></div>
+                </div>
+            </div>
+
+            <!-- Multi-Block-Size Comparison Table -->
+            <div class="card">
+                <div class="card-title">Cross Block-Size Performance Comparison (For Current Pointer P)</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Block Size (N)</th>
+                            <th>Hit Encoding</th>
+                            <th>Miss Encoding</th>
+                            <th>Break-Even Rate</th>
+                            <th>Actual Hit Rate</th>
+                            <th>Compressed Size</th>
+                            <th>Net Savings</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTableBody">
+                        <!-- Populated dynamically by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Active Dictionary Table & Math Breakdown -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-title">Top Dictionary Entries <span style="font-size: 0.78rem; font-weight: normal; color: var(--text-muted);">(Showing Top 10)</span></div>
+                    <table style="max-height: 250px;">
+                        <thead>
+                            <tr>
+                                <th>Idx</th>
+                                <th>Pattern (Hex / Binary)</th>
+                                <th>Hits</th>
+                                <th>% File</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dictTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-title">Mathematical Mechanics</div>
+                    <p style="font-size: 0.82rem; color: var(--text-muted);">
+                        Flag-based coding adds 1 bit per block. A match encodes to <code>1 + P</code> bits; a miss expands to <code>1 + N</code> bits.
+                    </p>
+                    <div class="math-box" id="mathBox">
+                        E(L) = p &middot; (1 + P) + (1 - p) &middot; (1 + N)<br>
+                        p<sub>break-even</sub> = 1 / (N - P)<br>
+                        <hr style="border-color: var(--card-border); margin: 8px 0;">
+                        Current parameters: N = <span id="mathN" class="highlight">32</span>, P = <span id="mathP" class="highlight">16</span><br>
+                        Match length: <span id="mathMatchLen" class="highlight">17</span> bits | Miss length: <span id="mathMissLen" class="highlight">33</span> bits<br>
+                        Savings per match: <span id="mathSavings" class="highlight">15</span> bits | Miss penalty: <span id="mathPenalty" class="highlight">1</span> bit
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let currentBuffer = null;
+        let currentFileName = "Sample Memory Dump";
+
+        // DOM Elements
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+
+        // Setup Drag & Drop
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            currentFileName = file.name;
+            fileInfo.innerHTML = `Active File: <i>${file.name}</i> (${(file.size / 1024).toFixed(1)} KB)`;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentBuffer = new Uint8Array(e.target.result);
+                runCompression();
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Preset Generators
+        function loadPreset(type) {
+            let size = 32768; // 32 KB for richer table testing
+            let buf = new Uint8Array(size);
+
+            if (type === 'memory') {
+                currentFileName = "Preset: 64-bit Memory Dump";
+                for (let i = 0; i < size; i += 8) {
+                    let r = Math.random();
+                    if (r < 0.50) {
+                        // 0x0000000000000000
+                        for (let j = 0; j < 8; j++) buf[i+j] = 0x00;
+                    } else if (r < 0.65) {
+                        // 0xFFFFFFFFFFFFFFFF
+                        for (let j = 0; j < 8; j++) buf[i+j] = 0xFF;
+                    } else if (r < 0.80) {
+                        // Pointer address space (repeating base pointers)
+                        let ptrBase = (Math.floor(Math.random() * 256));
+                        buf[i] = 0x00; buf[i+1] = ptrBase; buf[i+2] = 0xBF; buf[i+3] = 0x5F;
+                        buf[i+4] = 0xFF; buf[i+5] = 0x7F; buf[i+6] = 0x00; buf[i+7] = 0x00;
+                    } else {
+                        for (let j = 0; j < 8; j++) buf[i+j] = Math.floor(Math.random() * 256);
+                    }
+                }
+            } else if (type === 'text') {
+                currentFileName = "Preset: English Prose Text";
+                const sampleText = "Flag-based dictionary compression operates by substituting recurring sequences of bits with compact lookup pointers. When operating on memory dumps or structured payloads, frequent patterns like zero-fill blocks or repeating pointer structures yield massive compression gains even with tiny dictionaries. Larger tables scale up hit rates dramatically for 32-bit and 64-bit words!";
+                let textBytes = new TextEncoder().encode(sampleText);
+                for (let i = 0; i < size; i++) {
+                    buf[i] = textBytes[i % textBytes.length];
+                }
+            } else if (type === 'sparse') {
+                currentFileName = "Preset: Sparse Data (92% Zeroes)";
+                for (let i = 0; i < size; i++) {
+                    buf[i] = Math.random() < 0.92 ? 0x00 : Math.floor(Math.random() * 256);
+                }
+            } else if (type === 'random') {
+                currentFileName = "Preset: Uniform Random Noise";
+                for (let i = 0; i < size; i++) {
+                    buf[i] = Math.floor(Math.random() * 256);
+                }
+            }
+
+            fileInfo.innerHTML = `Active File: <i>${currentFileName}</i> (${(size / 1024).toFixed(1)} KB)`;
+            currentBuffer = buf;
+            runCompression();
+        }
+
+        // Bit Reader Helper
+        function extractBlock(bytes, totalBits, bitOffset, N) {
+            let val = 0n;
+            for (let i = 0; i < N; i++) {
+                let pos = bitOffset + i;
+                if (pos >= totalBits) break;
+                let byteIdx = Math.floor(pos / 8);
+                let bitIdx = 7 - (pos % 8);
+                let bit = (bytes[byteIdx] >> bitIdx) & 1;
+                val = (val << 1n) | BigInt(bit);
+            }
+            return val;
+        }
+
+        function formatBlock(val, N) {
+            let hexDigits = Math.ceil(N / 4);
+            let hexStr = val.toString(16).toUpperCase().padStart(hexDigits, '0');
+            return `0x${hexStr}`;
+        }
+
+        function formatBinary(val, N) {
+            let b = val.toString(2).padStart(N, '0');
+            return b.length > 24 ? b.slice(0, 20) + '...' : b;
+        }
+
+        // Core Compression Simulation Algorithm
+        function simulateCompression(N, P, strategy, bytes) {
+            const numEntries = 1 << P;
+            const totalBits = bytes.length * 8;
+            const totalBlocks = Math.floor(totalBits / N);
+
+            if (totalBlocks === 0) return null;
+
+            // 1. Build Dictionary
+            let dictionary = [];
+            let freqMap = new Map();
+
+            if (strategy === 'frequency') {
+                for (let i = 0; i < totalBlocks; i++) {
+                    let blk = extractBlock(bytes, totalBits, i * N, N);
+                    freqMap.set(blk, (freqMap.get(blk) || 0) + 1);
+                }
+                let sorted = Array.from(freqMap.entries()).sort((a, b) => b[1] - a[1]);
+                dictionary = sorted.slice(0, numEntries).map(item => item[0]);
+            } else if (strategy === 'first') {
+                let seen = new Set();
+                for (let i = 0; i < totalBlocks; i++) {
+                    let blk = extractBlock(bytes, totalBits, i * N, N);
+                    if (!seen.has(blk)) {
+                        seen.add(blk);
+                        dictionary.push(blk);
+                        if (dictionary.length === numEntries) break;
+                    }
+                }
+            } else if (strategy === 'standard') {
+                let zeroes = 0n;
+                let ones = (1n << BigInt(N)) - 1n;
+                dictionary.push(zeroes);
+                dictionary.push(ones);
+                for (let i = 0; i < N && dictionary.length < numEntries; i++) {
+                    let pat = 1n << BigInt(i);
+                    if (!dictionary.includes(pat)) dictionary.push(pat);
+                }
+                while (dictionary.length < numEntries) {
+                    dictionary.push(BigInt(dictionary.length));
+                }
+            }
+
+            let dictMap = new Map();
+            dictionary.forEach((val, idx) => dictMap.set(val, idx));
+
+            // 2. Perform Pass
+            let hits = 0;
+            let misses = 0;
+            let blockResults = [];
+            let dictHitCounts = new Array(dictionary.length).fill(0);
+
+            for (let i = 0; i < totalBlocks; i++) {
+                let blk = extractBlock(bytes, totalBits, i * N, N);
+                if (dictMap.has(blk)) {
+                    hits++;
+                    let idx = dictMap.get(blk);
+                    dictHitCounts[idx]++;
+                    if (i < 1000) blockResults.push(true);
+                } else {
+                    misses++;
+                    if (i < 1000) blockResults.push(false);
+                }
+            }
+
+            let rawBits = totalBlocks * N;
+            let hitEncodedBits = 1 + P;
+            let missEncodedBits = 1 + N;
+            let compressedBits = (hits * hitEncodedBits) + (misses * missEncodedBits);
+            let breakEvenRate = (N > P) ? (1.0 / (N - P)) : 1.0;
+            let actualHitRate = hits / totalBlocks;
+
+            return {
+                N, P, strategy,
+                totalBlocks, hits, misses,
+                rawBits, compressedBits,
+                breakEvenRate, actualHitRate,
+                dictionary, dictHitCounts,
+                blockResults
+            };
+        }
+
+        function runCompression() {
+            if (!currentBuffer) {
+                loadPreset('memory');
+                return;
+            }
+
+            const N = parseInt(document.getElementById('blockSizeSelect').value);
+            const P = parseInt(document.getElementById('pointerSizeSelect').value);
+            const strategy = document.getElementById('dictStrategySelect').value;
+
+            const res = simulateCompression(N, P, strategy, currentBuffer);
+            if (!res) return;
+
+            // Stats
+            document.getElementById('statRawSize').innerText = formatBytes(res.rawBits / 8);
+            document.getElementById('statRawBits').innerText = `${res.rawBits.toLocaleString()} bits`;
+
+            document.getElementById('statCompSize').innerText = formatBytes(res.compressedBits / 8);
+            document.getElementById('statCompBits').innerText = `${res.compressedBits.toLocaleString()} bits`;
+
+            let savedBits = res.rawBits - res.compressedBits;
+            let ratioPct = (savedBits / res.rawBits) * 100;
+            let ratioPill = document.getElementById('ratioPill');
+
+            if (savedBits >= 0) {
+                document.getElementById('statRatio').innerText = `+${ratioPct.toFixed(2)}%`;
+                document.getElementById('statRatio').style.color = 'var(--accent-hit)';
+                ratioPill.className = 'pill pill-success';
+                ratioPill.innerText = `Saved ${(savedBits/8).toFixed(1)} B`;
+            } else {
+                document.getElementById('statRatio').innerText = `${ratioPct.toFixed(2)}%`;
+                document.getElementById('statRatio').style.color = 'var(--accent-miss)';
+                ratioPill.className = 'pill pill-danger';
+                ratioPill.innerText = `Expanded ${Math.abs(savedBits/8).toFixed(1)} B`;
+            }
+
+            let hitRatePct = (res.actualHitRate * 100).toFixed(2);
+            let reqRatePct = res.N <= res.P ? "N/A (P ≥ N)" : (res.breakEvenRate * 100).toFixed(2) + "%";
+            document.getElementById('statHitRate').innerText = `${hitRatePct}%`;
+            document.getElementById('statBreakEven').innerText = `Req: > ${reqRatePct}`;
+
+            // Block Map Grid
+            const grid = document.getElementById('blockGrid');
+            grid.innerHTML = '';
+            res.blockResults.forEach((isHit) => {
+                let cell = document.createElement('div');
+                cell.className = `block-cell ${isHit ? 'hit' : 'miss'}`;
+                grid.appendChild(cell);
+            });
+
+            // Dictionary Table Top 10
+            const dictBody = document.getElementById('dictTableBody');
+            dictBody.innerHTML = '';
+            let showCount = Math.min(10, res.dictionary.length);
+            for (let idx = 0; idx < showCount; idx++) {
+                let val = res.dictionary[idx];
+                let count = res.dictHitCounts[idx];
+                let pct = ((count / res.totalBlocks) * 100).toFixed(1);
+                let row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="mono">${idx}</td>
+                    <td class="mono">${formatBlock(val, N)} <span style="color:var(--text-muted); font-size:0.72rem;">(${formatBinary(val, N)})</span></td>
+                    <td class="mono">${count.toLocaleString()}</td>
+                    <td>${pct}%</td>
+                `;
+                dictBody.appendChild(row);
+            }
+
+            // Math Mechanics Box
+            document.getElementById('mathN').innerText = N;
+            document.getElementById('mathP').innerText = P;
+            document.getElementById('mathMatchLen').innerText = 1 + P;
+            document.getElementById('mathMissLen').innerText = 1 + N;
+            document.getElementById('mathSavings').innerText = (N - P - 1) >= 0 ? (N - P - 1) : 0;
+            document.getElementById('mathPenalty').innerText = 1;
+
+            // Run Comparison across all N
+            renderComparisonTable(P, strategy);
+        }
+
+        function renderComparisonTable(P, strategy) {
+            const blockSizes = [4, 6, 8, 16, 32, 64];
+            const tbody = document.getElementById('comparisonTableBody');
+            tbody.innerHTML = '';
+
+            blockSizes.forEach(nVal => {
+                const res = simulateCompression(nVal, P, strategy, currentBuffer);
+                if (!res) return;
+
+                let breakEvenText = (nVal > P) ? `${(res.breakEvenRate * 100).toFixed(1)}%` : "N/A (P ≥ N)";
+                let actualText = `${(res.actualHitRate * 100).toFixed(1)}%`;
+                let netSaved = res.rawBits - res.compressedBits;
+                let pctSaved = ((netSaved / res.rawBits) * 100).toFixed(2);
+
+                let badgeClass = netSaved >= 0 ? 'pill-success' : 'pill-danger';
+                let sign = netSaved >= 0 ? '+' : '';
+
+                let row = document.createElement('tr');
+                if (nVal === parseInt(document.getElementById('blockSizeSelect').value)) {
+                    row.style.backgroundColor = 'rgba(56, 189, 248, 0.1)';
+                }
+
+                row.innerHTML = `
+                    <td><strong>${nVal} bits</strong></td>
+                    <td class="mono">${1 + P} bits</td>
+                    <td class="mono">${1 + nVal} bits</td>
+                    <td>${breakEvenText}</td>
+                    <td><strong>${actualText}</strong></td>
+                    <td class="mono">${formatBytes(res.compressedBits / 8)}</td>
+                    <td><span class="pill ${badgeClass}">${sign}${pctSaved}%</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes.toFixed(0) + " B";
+            else if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+            else return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+        }
+
+        window.onload = function() {
+            loadPreset('memory');
+        };
+    </script>
+</body>
+</html>
