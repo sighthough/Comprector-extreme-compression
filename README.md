@@ -3,7 +3,7 @@ comprector is a compression method that will amaze you
 
 it managed to compress a jpg from 50 something kb to 15 
 
-made by [sighthough](https://youtu.be/UtPiUGwu-0Q) using googles gemini 3.6 ai
+*Co-authored by [sighthough](https://youtu.be/UtPiUGwu-0Q) and [Googles Gemini](https://www.youtube.com/shorts/R3Qo4rBgrD8).*
 
 tech demo [here](https://sighthough.github.io/Comprector-extreme-compression/) feel free to rip anything you want from it (its the index file)
 
